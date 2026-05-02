@@ -76,4 +76,3 @@ npm run dev
 
 The application will be running at `http://localhost:5173`.
 
-

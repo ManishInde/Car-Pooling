@@ -48,3 +48,7 @@ CREATE TABLE messages (
   text TEXT NOT NULL,
   created_at TIMESTAMP DEFAULT NOW()
 );
+
+ALTER TABLE trips
+ ADD COLUMN car_model VARCHAR(100),
+ ADD COLUMN license_plate VARCHAR(50);

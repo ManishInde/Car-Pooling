@@ -5,6 +5,9 @@ import { useAuth } from '../context/AuthContext';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import axios from 'axios';
+import { GeoSearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
+import 'leaflet-geosearch/dist/geosearch.css';
+import { useEffect } from 'react';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -15,15 +18,24 @@ L.Icon.Default.mergeOptions({
 
 const CreateTrip = () => {
 
-    const [origin, setOrigin] = useState('');
-    const [destination, setDestination] = useState('');
-    const [originCoords, setOriginCoords] = useState(null);
-    const [destCoords, setDestCoords] = useState(null);
-    const [pickingMode, setPickingMode] = useState('origin')
+    const [tripDirection, setTripDirection] = useState('to_campus');
+    const [customCoords, setCustomCoords] = useState(null);
+    const [customAddress, setCustomAddress] = useState('');
+
+    const campusCoords = { lat: 18.5538, lng: 73.8253 };
+    const campusName = "MIT WPU Front Gate";
+
+    const originCoords = tripDirection === 'to_campus' ? customCoords : campusCoords;
+    const destCoords = tripDirection === 'to_campus' ? campusCoords : customCoords;
+
+    const originName = tripDirection === 'to_campus' ? customAddress : campusName;
+    const destName = tripDirection === 'to_campus' ? campusName : customAddress;
+
     const [departureTime, setDepartureTime] = useState('');
     const [seats, setSeats] = useState('');
-    const [price, setPrice] = useState('');
     const [error, setError] = useState('');
+    const [carModel, setCarModel] = useState('');
+    const [licensePlate, setLicensePlate] = useState('');
 
     const { token } = useAuth();
     const navigate = useNavigate();
@@ -35,15 +47,16 @@ const CreateTrip = () => {
         try {
 
             await api.post('/trips', {
-                origin,
-                destination,
+                origin: originName,
+                destination: destName,
                 origin_lat: originCoords?.lat,
                 origin_lng: originCoords?.lng,
                 dest_lat: destCoords?.lat,
                 dest_lng: destCoords?.lng,
                 departure_time: departureTime,
                 seats_available: parseInt(seats),
-                price: parseFloat(price)
+                car_model: carModel,
+                license_plate: licensePlate
             }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -58,26 +71,43 @@ const CreateTrip = () => {
         useMapEvents({
             click: async (e) => {
                 const { lat, lng } = e.latlng;
-
-                if (pickingMode === 'origin') {
-                    setOriginCoords({ lat, lng });
-                } else {
-                    setDestCoords({ lat, lng });
-                }
+                setCustomCoords({ lat, lng });
 
                 try {
                     const response = await axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
-                    const addressName = response.data.display_name.split(',')[0];
-
-                    if (pickingMode === 'origin') setOrigin(addressName);
-                    else setDestination(addressName);
+                    setCustomAddress(response.data.display_name.split(',')[0]);
                 } catch (err) {
-                    console.log("Could not find address name for this location");
+                    console.log("Could not find address name");
                 }
             },
         });
         return null;
     };
+
+    const SearchField = () => {
+        const map = useMapEvents({});
+
+        useEffect(() => {
+            const provider = new OpenStreetMapProvider();
+            const searchControl = new GeoSearchControl({
+                provider: provider,
+                style: 'bar',
+                showMarker: false,
+                showPopup: false,
+                autoClose: true,
+                retainZoomLevel: false,
+                animateZoom: true,
+                keepResult: true,
+                searchLabel: 'Search for an address...'
+            });
+
+            map.addControl(searchControl);
+            return () => map.removeControl(searchControl);
+        }, [map]);
+
+        return null;
+    };
+
 
 
     return (
@@ -88,63 +118,51 @@ const CreateTrip = () => {
                 <div style={{ display: 'flex', gap: '10px', marginBottom: '10px ' }}>
                     <button
                         type="button"
-                        className={`btn ${pickingMode === 'origin' ? 'btn-primary' : 'btn-dark '}`}
-                        onClick={() => setPickingMode('origin')}
+                        className={`btn ${tripDirection === 'to_campus' ? 'btn-primary' : 'btn-dark '}`}
+                        onClick={() => setTripDirection('to_campus')}
                     >
-                        Pick Origin
+                        Going TO Campus
                     </button>
 
                     <button
                         type="button"
-                        className={`btn ${pickingMode === 'destination' ? 'btn-primary' : 'btn-dark'}`}
-                        onClick={() => setPickingMode('destination')}
+                        className={`btn ${tripDirection === 'from-campus' ? 'btn-primary' : 'btn-dark'}`}
+                        onClick={() => setTripDirection('from_campus')}
                     >
-                        Pick Destination
+                        Leaving FROM Campus
                     </button>
 
                 </div>
 
-                <div style={{ marginBottom: '20px' }}>
-                    <MapContainer center={[18.518330, 73.815079]} zoom={12} scrollWheelZoom={true}>
-                        <TileLayer
-                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                        />
-                        <LocationPicker />
+                <MapContainer center={[18.518330, 73.815079]} zoom={12} scrollWheelZoom={true}>
+                    <TileLayer
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    <LocationPicker />
+                    <SearchField />   {/* ADD THIS LINE! */}
 
-                        {originCoords && <Marker position={[originCoords.lat, originCoords.lng]} />}
+                    {originCoords && <Marker position={[originCoords.lat, originCoords.lng]} />}
+                    {destCoords && <Marker position={[destCoords.lat, destCoords.lng]} />}
+                </MapContainer>
 
-                        {destCoords && <Marker position={[destCoords.lat, destCoords.lng]} />}
 
-                    </MapContainer>
+                <div style={{
+                    background: '#222', padding: '15px', borderRadius: '8px',
+                    marginBottom: '20px', border: '1px solid #444'
+                }}>
+                    <h4 style={{ margin: '0 0 10px 0', color: 'var(--primary-blue)' }}>Trip Summary</h4>
+                    <p style={{ margin: '5px 0' }}><strong>From:</strong> {originName || 'Click map to select...'}</p>
+                    <p style={{ margin: '5px 0' }}><strong>To:</strong> {destName || 'Click map to select...'}</p>
                 </div>
+
 
 
 
                 {error && <div className="auth-error">{error}</div>}
 
                 <form onSubmit={handleSubmit} className="auth-form">
-                    <div className="form-group">
-                        <label>Origin (From)</label>
-                        <input
-                            type="text"
-                            value={origin}
-                            onChange={(e) => setOrigin(e.target.value)}
-                            required
-                            placeholder="e.g. PCMC"
-                        />
-                    </div>
 
-                    <div className="form-group">
-                        <label>Destination (To)</label>
-                        <input
-                            type="text"
-                            value={destination}
-                            onChange={(e) => setDestination(e.target.value)}
-                            required
-                            placeholder="e.g. Main gate"
-                        />
-                    </div>
 
                     <div className="form-group">
                         <label>Departure Time</label>
@@ -170,23 +188,34 @@ const CreateTrip = () => {
                     </div>
 
                     <div className="form-group">
-                        <label>Price per seat($)</label>
+                        <label>Car Model</label>
                         <input
-                            type="number"
-                            step="0.50"
-                            min="0"
-                            value={price}
-                            onChange={(e) => setPrice(e.target.value)}
+                            type="text"
+                            value={carModel}
+                            onChange={(e) => setCarModel(e.target.value)}
                             required
-                            placeholder="e.g. 5.50"
+                            placeholder="e.g. Honda City"
                         />
                     </div>
+
+                    <div className="form-group">
+                        <label>License Plate</label>
+                        <input
+                            type="text"
+                            value={licensePlate}
+                            onChange={(e) => setLicensePlate(e.target.value)}
+                            required
+                            placeholder="AB VA XX 1234"
+                        />
+                    </div>
+
+
 
                     <button type="submit" className="btn btn-primary btn-block mt-4">Publish Trip</button>
 
                 </form>
             </div>
-        </div>
+        </div >
     );
 };
 

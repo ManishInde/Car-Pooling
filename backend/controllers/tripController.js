@@ -1,13 +1,31 @@
 const pool = require('../db');
 
+function calculationDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c;
+    return distance;
+}
+
+
 const createTrip = async (req, res) => {
     try {
-        const { origin, destination, origin_lat, origin_lng, dest_lat, dest_lng, departure_time, seats_available, price } = req.body;
+        const { origin, destination, origin_lat, origin_lng, dest_lat, dest_lng, departure_time, seats_available, car_model, license_plate } = req.body;
+
+        const distance = calculationDistance(origin_lat, origin_lng, dest_lat, dest_lng);
+        let calculatedPrice = (distance * 4) / Math.max(1, seats_available);
+        calculatedPrice = Math.round(calculatedPrice * 100) / 100;
 
         const newTrip = await pool.query(
-            `INSERT INTO trips (driver_id, origin, destination, origin_lat, origin_lng, dest_lat, dest_lng, departure_time, seats_available, price)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-            [req.user.id, origin, destination, origin_lat, origin_lng, dest_lat, dest_lng, departure_time, seats_available, price]
+            `INSERT INTO trips (driver_id, origin, destination, origin_lat, origin_lng, dest_lat, dest_lng, departure_time, seats_available, price, car_model, license_plate)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+            [req.user.id, origin, destination, origin_lat, origin_lng, dest_lat, dest_lng, departure_time, seats_available, calculatedPrice, car_model, license_plate]
         );
 
         res.status(201).json({
@@ -24,7 +42,7 @@ const createTrip = async (req, res) => {
 const getAllTrips = async (req, res) => {
     try {
         const trips = await pool.query(
-            'SELECT * FROM trips ORDER BY departure_time ASC'
+            'SELECT * FROM trips WHERE seats_available > 0 ORDER BY departure_time ASC'
         );
 
         res.status(200).json({ trips: trips.rows });

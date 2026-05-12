@@ -18,7 +18,7 @@ const Dashboard = () => {
     const [trips, setTrips] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const { token } = useAuth();
+    const { token, user } = useAuth();
     const navigate = useNavigate();
     const [searchOrigin, setSearchOrigin] = useState('');
     const [searchDestination, setSearchDestination] = useState('');
@@ -58,6 +58,23 @@ const Dashboard = () => {
             navigate(`/trip/${tripId}`);
         } catch (err) {
             alert(err.response?.data?.error || 'Failed to join trip');
+        }
+    };
+
+    const handleCancelTrip = async (tripId) => {
+        if (!window.confirm('Are you sure you want to cancel this trip? All passengers will lose their bookings.')) {
+            return;
+        }
+        try {
+            await api.patch(`/trips/${tripId}/cancel`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            alert('Trip cancelled successfully.');
+
+            setTrips(trips.filter(trip => trip.id !== tripId));
+        } catch (err) {
+            alert(err.response?.data?.error || 'Failed to cancel trip');
         }
     };
 
@@ -159,7 +176,20 @@ const Dashboard = () => {
                             >
                                 Join Trip
                             </button>
+                            {user && trip.driver_id === user.id && (
+                                <button
+                                    className="btn btn-dark btn-block mt-4"
+                                    style={{ borderColor: '#ff4444', color: '#ff4444' }}
+                                    onClick={() => handleCancelTrip(trip.id)}
+                                >
+                                    Cancel Trip
+                                </button>
+                            )}
+
+
                         </div>
+
+
                     ))
                 )}
             </div>

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { createTrip, getAllTrips, joinTrip, getTripMessages } = require('../controllers/tripController');
+const { createTrip, getAllTrips, joinTrip, getTripMessages, cancelTrip } = require('../controllers/tripController');
 
 const verifyToken = require('../middleware/authMiddleware');
 
@@ -10,5 +10,7 @@ router.get('/', verifyToken, getAllTrips);
 router.post('/:id/join', verifyToken, joinTrip);
 
 router.get('/:id/messages', verifyToken, getTripMessages);
+
+router.patch('/:id/cancel', verifyToken, cancelTrip);
 
 module.exports = router;

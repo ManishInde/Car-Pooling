@@ -47,7 +47,7 @@ const getAllTrips = async (req, res) => {
         SELECT trips.*, users.name AS driver_name
         FROM trips
         JOIN users ON trips.driver_id = users.id
-        WHERE trips.seats_available > 0
+        WHERE trips.seats_available > 0 AND trips.status = 'active'
         `;
         const queryParams = [];
         let paramIndex = 1;
@@ -155,4 +155,31 @@ const getTripMessages = async (req, res) => {
     }
 };
 
-module.exports = { createTrip, getAllTrips, joinTrip, getTripMessages };
+const cancelTrip = async (req, res) => {
+    try {
+        const tripId = req.params.id;
+        const userId = req.user.id;
+
+        const tripResult = await pool.query('SELECT * FROM trips WHERE id = $1', [tripId]);
+        if (tripResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Trip not found' });
+        }
+
+        const trip = tripResult.rows[0];
+
+        if (trip.driver_id !== userId) {
+            return res.status(403).json({ error: 'You are not authorized to cancel this trip' });
+        }
+
+        await pool.query(
+            'UPDATE trips SET status = $1 WHERE id = $2', ['cancelled', tripId]
+        );
+
+        res.status(200).json({ message: 'Trip cancelled succesfully' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Server Error' });
+    }
+};
+
+module.exports = { createTrip, getAllTrips, joinTrip, getTripMessages, cancelTrip };

@@ -52,3 +52,6 @@ CREATE TABLE messages (
 ALTER TABLE trips
  ADD COLUMN car_model VARCHAR(100),
  ADD COLUMN license_plate VARCHAR(50);
+
+ ALTER TABLE trips ADD COLUMN status VARCHAR(20) DEFAULT 'active';
+

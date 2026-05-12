@@ -48,6 +48,7 @@ const TripDetails = () => {
 
         if (!user) {
             alert("Error: User data missing. Please Log out and log back in!");
+            return;
         }
 
         socket.emit('send_message', {

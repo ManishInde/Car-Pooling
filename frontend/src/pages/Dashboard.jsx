@@ -20,12 +20,19 @@ const Dashboard = () => {
     const [error, setError] = useState('');
     const { token } = useAuth();
     const navigate = useNavigate();
+    const [searchOrigin, setSearchOrigin] = useState('');
+    const [searchDestination, setSearchDestination] = useState('');
 
     useEffect(() => {
         const fetchTrips = async () => {
             try {
                 const response = await api.get('/trips', {
-                    headers: { Authorization: `Bearer ${token}` }
+                    headers: { Authorization: `Bearer ${token}` },
+
+                    params: {
+                        origin: searchOrigin || undefined,
+                        destination: searchDestination || undefined
+                    }
                 });
                 setTrips(response.data.trips);
             } catch (err) {
@@ -36,7 +43,7 @@ const Dashboard = () => {
         };
 
         fetchTrips();
-    }, [token]);
+    }, [token, searchOrigin, searchDestination]);
 
 
     const handleJoinTrip = async (tripId) => {
@@ -63,6 +70,23 @@ const Dashboard = () => {
             <div className="dashboard-header">
                 <h2>Available Trips</h2>
                 <Link to="/create-trip" className="btn btn-primary">Offer a Ride</Link>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                <input
+                    type="text"
+                    placeholder="Search Origin (eg. MITWPU)"
+                    className="form-control"
+                    value={searchOrigin}
+                    onChange={(e) => setSearchOrigin(e.target.value)}
+                />
+                <input
+                    type="text"
+                    placeholder="Search Destination"
+                    className="form-control"
+                    value={searchDestination}
+                    onChange={(e) => setSearchDestination(e.target.value)}
+                />
             </div>
 
             <div style={{ marginBottom: '30px' }}>
@@ -110,9 +134,24 @@ const Dashboard = () => {
                             </div>
 
                             <div className="trip-details">
+                                <p>Driver: <strong>{trip.driver_name || 'Unknown'}</strong></p>
                                 <p>Departure: {new Date(trip.departure_time).toLocaleString()}</p>
                                 <p>Seats: {trip.seats_available} left</p>
                                 <p>Price: ${trip.price}</p>
+
+
+                                <div style={{
+                                    marginTop: '10px',
+                                    paddingTop: '10px',
+                                    borderTop: '1px solid #444',
+                                    color: '#aaa',
+                                    fontSize: '0.9em'
+                                }}>
+                                    <p style={{ margin: '2px 0' }}>🚗 {trip.car_model || 'Standard Sedan'}</p>
+                                    <p style={{ margin: '2px 0', fontWeight: 'bold', letterSpacing: '1px' }}>
+                                        {trip.license_plate || 'Not Provided'}
+                                    </p>
+                                </div>
                             </div>
 
                             <button className="btn btn-dark btn-block mt-4"

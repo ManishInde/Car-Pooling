@@ -41,9 +41,32 @@ const createTrip = async (req, res) => {
 
 const getAllTrips = async (req, res) => {
     try {
-        const trips = await pool.query(
-            'SELECT * FROM trips WHERE seats_available > 0 ORDER BY departure_time ASC'
-        );
+        const { origin, destination } = req.query;
+
+        let queryStr = `
+        SELECT trips.*, users.name AS driver_name
+        FROM trips
+        JOIN users ON trips.driver_id = users.id
+        WHERE trips.seats_available > 0
+        `;
+        const queryParams = [];
+        let paramIndex = 1;
+
+        if (origin) {
+            queryStr += ` AND trips.origin ILIKE $${paramIndex}`;
+            queryParams.push(`%${origin}%`);
+            paramIndex++;
+        }
+
+        if (destination) {
+            queryStr += ` AND trips.destination ILIKE $${paramIndex}`;
+            queryParams.push(`%${destination}%`);
+            paramIndex++;
+        }
+
+        queryStr += ` ORDER BY trips.departure_time ASC`;
+
+        const trips = await pool.query(queryStr, queryParams);
 
         res.status(200).json({ trips: trips.rows });
 
@@ -55,7 +78,30 @@ const getAllTrips = async (req, res) => {
 
 const joinTrip = async (req, res) => {
     try {
+
         const tripId = req.params.id;
+        const userId = req.user.id;
+        const tripResult = await pool.query('SELECT * FROM trips WHERE id = $1', [tripId]);
+        if (tripResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Trip not found' });
+        }
+        const trip = tripResult.rows[0];
+
+        if (trip.driver_id === userId) {
+            return res.status(400).json({ error: 'You cannot join your own trip. ' });
+        }
+
+        const overlapCheck = await pool.query(
+            `SELECT trips.* FROM bookings
+            JOIN trips ON bookings.trip_id = trips.id
+            WHERE bookings.passenger_id = $1
+            AND ABS(EXTRACT(EPOCH FROM (trips.departure_time - $2::TIMESTAMP))) < 3600`,
+            [userId, trip.departure_time]
+        );
+
+        if (overlapCheck.rows.length > 0) {
+            return res.status(400).json({ error: 'You already have a booking within 1 hour of this trip. ' });
+        }
 
 
         const tripUpdate = await pool.query(
@@ -75,7 +121,7 @@ const joinTrip = async (req, res) => {
         const booking = await pool.query(
             `INSERT INTO bookings (trip_id, passenger_id)
             VALUES ($1, $2) RETURNING *`,
-            [tripId, req.user.id]
+            [tripId, userId]
         );
 
         res.status(201).json({

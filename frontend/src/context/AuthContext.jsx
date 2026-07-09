@@ -13,12 +13,14 @@ export const AuthProvider = ({ children }) => {
         setUser(userData);
         setToken(userToken);
         localStorage.setItem('token', userToken);
+        localStorage.setItem('user', JSON.stringify(userData));
     };
 
     const logout = () => {
         setUser(null);
         setToken(null);
         localStorage.removeItem('token');
+        localStorage.removeItem('user');
     };
 
     return (

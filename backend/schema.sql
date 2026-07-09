@@ -54,4 +54,5 @@ ALTER TABLE trips
  ADD COLUMN license_plate VARCHAR(50);
 
  ALTER TABLE trips ADD COLUMN status VARCHAR(20) DEFAULT 'active';
+ ALTER TABLE users ADD COLUMN phone VARCHAR(20);
 

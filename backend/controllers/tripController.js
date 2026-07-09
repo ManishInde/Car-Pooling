@@ -47,7 +47,7 @@ const getAllTrips = async (req, res) => {
         SELECT trips.*, users.name AS driver_name
         FROM trips
         JOIN users ON trips.driver_id = users.id
-        WHERE trips.seats_available > 0 AND trips.status = 'active'
+        WHERE trips.seats_available > 0 AND trips.status = 'active' AND trips.departure_time > NOW()
         `;
         const queryParams = [];
         let paramIndex = 1;

@@ -83,4 +83,35 @@ const login = async (req, res) => {
 
 };
 
-module.exports = { register, login };
+const getProfile = async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT id, name, email, phone, role, created_at FROM users WHERE id = $1',
+            [req.user.id]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        res.status(200).json({ user: result.rows[0] });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Server Error' });
+    }
+};
+
+const updateProfile = async (req, res) => {
+    try {
+        const { phone } = req.body;
+        const result = await pool.query(
+            'UPDATE users SET phone = $1 WHERE id = $2 RETURNING id, name, email, phone, role',
+            [phone, req.user.id]
+        );
+
+        res.status(200).json({ message: 'Profile updated', user: result.rows[0] });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Server Error' });
+    }
+};
+
+module.exports = { register, login, getProfile, updateProfile };

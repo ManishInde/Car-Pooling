@@ -171,11 +171,13 @@ const Dashboard = () => {
                                 </div>
                             </div>
 
-                            <button className="btn btn-dark btn-block mt-4"
-                                onClick={() => handleJoinTrip(trip.id)}
-                            >
-                                Join Trip
-                            </button>
+                            {user && trip.driver_id !== user.id && (
+                                <button className="btn btn-dark btn-block mt-4"
+                                    onClick={() => handleJoinTrip(trip.id)}
+                                >
+                                    Join Trip
+                                </button>
+                            )}
                             {user && trip.driver_id === user.id && (
                                 <button
                                     className="btn btn-dark btn-block mt-4"

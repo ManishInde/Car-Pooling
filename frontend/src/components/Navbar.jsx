@@ -18,6 +18,7 @@ const Navbar = () => {
                 {user ? (
                     <>
                         <span className="navbar-user">Hi, {user.name}</span>
+                        <Link to="/profile" className="navbar-link">Profile</Link>
                         <Link to="/dashboard" className="navbar-link">Trips</Link>
                         <button onClick={handleLogout} className="btn btn-dark">Logout</button>
                     </>

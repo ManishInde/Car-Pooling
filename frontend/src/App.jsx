@@ -8,6 +8,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import CreateTrip from './pages/CreateTrip';
 import TripDetails from './pages/TripDetails';
+import Profile from './pages/Profile';
 
 const App = () => {
   return (
@@ -20,6 +21,11 @@ const App = () => {
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={
             <ProtectedRoute><Dashboard /></ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
           } />
           <Route path="/trip/:id" element={<TripDetails />} />
           <Route path="/create-trip" element={
